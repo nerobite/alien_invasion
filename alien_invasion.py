@@ -1,9 +1,9 @@
 import sys
 import pygame
 
-
 from settings import Settings
 from ship import Ship
+from bullet import Bullet
 
 class AlienInvasion:
     """Класс для управления ресурсами и поведением игры"""
@@ -18,6 +18,8 @@ class AlienInvasion:
         pygame.display.set_caption('Alien Invasion')
 
         self.ship = Ship(self)
+        self.bullets = pygame.sprite.Group()
+
 
 
     def run_game(self):
@@ -25,10 +27,10 @@ class AlienInvasion:
         while True:
             # Отслеживание событий клавиатуры и мыши
             self._check_events()
-
             # Позиция корабля
             self.ship.update()
-
+            # Позиция снаряда
+            self._update_bullet()
             # При каждом проходе цикла, переписывается экран
             self._update_screen()
 
@@ -56,6 +58,8 @@ class AlienInvasion:
             self.ship.moving_up = True
         elif event.key == pygame.K_DOWN:
             self.ship.moving_down = True
+        elif event.key == pygame.K_SPACE:
+            self._fire_bullet()
 
     def _check_keyup_events(self, event):
         """Реагирует на отпускание клавиши."""
@@ -68,13 +72,28 @@ class AlienInvasion:
         elif event.key == pygame.K_DOWN:
             self.ship.moving_down = False
 
+    def _fire_bullet(self):
+        """Создание нового снаряда и включение его в группу bullets."""
+        if len(self.bullets) < self.settings.bullets_allowed:
+            new_bullet = Bullet(self)
+            self.bullets.add(new_bullet)
 
+    def _update_bullet(self):
+        """Обновляет позиции снарядов и уничтожает старые снаряды."""
+        # Обновление позиции снарядов
+        self.bullets.update()
+
+        # Удаление снарядов, вышедших за край экрана
+        for bullet in self.bullets.copy():
+            if bullet.rect.bottom < 0:
+                self.bullets.remove(bullet)
 
     def _update_screen(self):
         """Обновляет изображение на экране и отображает новый экран"""
         self.screen.fill(self.settings.bg_color)
         self.ship.blitme()
-
+        for bullet in self.bullets.sprites():
+            bullet.draw_bullet()
         pygame.display.flip()
 
 if __name__ == '__main__':
