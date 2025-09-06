@@ -1,9 +1,15 @@
 import sys
 import pygame
+import random
 
+from time import sleep
 from settings import Settings
+from game_stats import GameStats
 from ship import Ship
 from bullet import Bullet
+from alien import Alien
+from star import Star
+
 
 class AlienInvasion:
     """Класс для управления ресурсами и поведением игры"""
@@ -17,8 +23,13 @@ class AlienInvasion:
         self.settings.screen_height = self.screen.get_rect().height
         pygame.display.set_caption('Alien Invasion')
 
+        self.stats = GameStats(self)
         self.ship = Ship(self)
         self.bullets = pygame.sprite.Group()
+        self.aliens = pygame.sprite.Group()
+        self.stars = pygame.sprite.Group()
+        self._create_starry_sky()
+        self._create_fleet()
 
 
 
@@ -31,6 +42,8 @@ class AlienInvasion:
             self.ship.update()
             # Позиция снаряда
             self._update_bullet()
+            # Обновляем позицию корабля пришельцев
+            self._update_aliens()
             # При каждом проходе цикла, переписывается экран
             self._update_screen()
 
@@ -87,13 +100,95 @@ class AlienInvasion:
         for bullet in self.bullets.copy():
             if bullet.rect.bottom < 0:
                 self.bullets.remove(bullet)
+        self._check_bullet_alien_collisions()
+
+
+    def _check_bullet_alien_collisions(self):
+        """Обработка коллизий снарядов с пришельцами."""
+        # Удаление снарядов и пришельцев, участвующих в коллизиях
+        collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, True, True)
+        if not self.aliens:
+            # Уничтожение существующих снарядов и создание нового флота
+            self.bullets.empty()
+            self._create_fleet()
+
+
+    def _update_aliens(self):
+        """Проверяет, достиг ли флот края экрана,
+        с последующим обновлением позиции всех пришельцев во флоте.
+        """
+        self._check_fleet_edges()
+        self.aliens.update()
+        # Проверка коллизий "пришелец - корабль"
+        if pygame.sprite.spritecollideany(self.ship, self.aliens):
+            print("Ship hit!!!")
+
+    def _create_fleet(self):
+        """Создание флота вторжения"""
+        # Создание пришельца и вычисление количества пришельцев в ряду
+        # Интервал между соседними пришельцами равен ширине пришельца
+        alien = Alien(self)
+        alien_width, alien_height = alien.rect.size
+        available_space_x = self.settings.screen_width - (2 * alien_width)
+        number_aliens_x = available_space_x // (2 * alien_width)
+
+        """Определяет количество рядов, помещающихся на экране."""
+        ship_height = self.ship.rect.height
+        available_space_y = (self.settings.screen_height - (3 * alien_height) - ship_height)
+        number_rows = available_space_y // (2 * alien_height)
+
+        # Создание флота вторжения.
+        for row_number in range(number_rows):
+            for alien_number in range(number_aliens_x):
+                self._create_alien(alien_number, row_number)
+
+    def _create_alien(self, alien_number, row_number):
+        # Создание пришельца и размещение его в ряду
+        alien = Alien(self)
+        alien_width, alien_height = alien.rect.size
+        alien_width = alien.rect.width
+        alien.x = alien_width + 2 * alien_width * alien_number
+        alien.rect.x = alien.x
+        alien.rect.y = alien_height + 2 * alien_height * row_number
+        self.aliens.add(alien)
+
+    def _create_starry_sky(self):
+        """Создание случайного звездного неба без наложений."""
+        max_stars = 50
+        for _ in range(max_stars):
+            star = Star(self)
+
+            # Проверяем пересечение
+            overlap = pygame.sprite.spritecollideany(star, self.stars)
+            while overlap:  # пока звезда пересекается — ищем новое место
+                star.rect.x = random.randint(0, self.settings.screen_width - star.rect.width)
+                star.rect.y = random.randint(0, self.settings.screen_height - star.rect.height)
+                overlap = pygame.sprite.spritecollideany(star, self.stars)
+
+            self.stars.add(star)
+
+    def _check_fleet_edges(self):
+        """Реагирует на достижение пришельцем края экрана."""
+        for alien in self.aliens.sprites():
+            if alien.check_edges():
+                self._change_fleet_direction()
+                break
+
+    def _change_fleet_direction(self):
+        """Опускает весь флот и меняет направление флота."""
+        for alien in self.aliens.sprites():
+            alien.rect.y += self.settings.fleet_drop_speed
+        self.settings.fleet_direction *= -1
 
     def _update_screen(self):
         """Обновляет изображение на экране и отображает новый экран"""
         self.screen.fill(self.settings.bg_color)
+        # Рисуем звезды
+        self.stars.draw(self.screen)
         self.ship.blitme()
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
+        self.aliens.draw(self.screen)
         pygame.display.flip()
 
 if __name__ == '__main__':
