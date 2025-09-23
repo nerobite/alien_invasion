@@ -1,6 +1,8 @@
 import sys
 import pygame
 import random
+import os
+import json
 
 from time import sleep
 from settings import Settings
@@ -28,6 +30,8 @@ class AlienInvasion:
         # Создание экземпляров для хранения статистики
         # и панели результатов.
         self.stats = GameStats(self)
+        self.high_score_file = "high_score.json"
+        self.stats.high_score = self._load_high_score()
         self.sb = Scoreboard(self)
         self.ship = Ship(self)
         self.bullets = pygame.sprite.Group()
@@ -38,6 +42,8 @@ class AlienInvasion:
 
         # Создание кнопки Play.
         self.play_button = Button(self, "Play")
+
+
 
 
     def run_game(self):
@@ -61,6 +67,7 @@ class AlienInvasion:
         """Обрабатывает нажатие клавиши и события мыши."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                self._save_high_score()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 self._check_keydown_events(event)
@@ -78,9 +85,14 @@ class AlienInvasion:
             self.settings.initialize_dynamic_settings()
             # Сброс игровой статистики
             self.stats.reset_stats()
+
+            # ← заново читаем рекорд из файла
+            self.stats.high_score = self._load_high_score()
+
             self.stats.game_active = True
             self.sb.prep_score()
             self.sb.prep_level()
+            self.sb.prep_ships()
             # Очистка списка пришельцев и снарядов
             self.aliens.empty()
             self.bullets.empty()
@@ -144,6 +156,7 @@ class AlienInvasion:
                 self.stats.score += self.settings.alien_points * len(aliens)
             self.sb.prep_score()
             self.sb.check_high_score()
+            self._save_high_score()
         if not self.aliens:
             # Уничтожение существующих снарядов и создание нового флота
             self.bullets.empty()
@@ -228,8 +241,9 @@ class AlienInvasion:
     def _ship_hit(self):
         """Обрабатывает столкновение корабля с пришельцем."""
         if self.stats.ships_left > 0:
-            #Уменьшение ships_left
+            #Уменьшение ships_left и обновление панели счета
             self.stats.ships_left -= 1
+            self.sb.prep_ships()
 
             #Очистка списка пришельцев и снарядов
             self.aliens.empty()
@@ -254,6 +268,22 @@ class AlienInvasion:
                 # Происходит то же, что при столкновении с кораблем.
                 self._ship_hit()
                 break
+
+    def _load_high_score(self):
+        """Читает рекорд из файла, если он существует."""
+        if os.path.exists(self.high_score_file):
+            try:
+                with open(self.high_score_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("high_score", 0)
+            except (json.JSONDecodeError, OSError):
+                # Если файл битый или пустой — начинаем с 0
+                return 0
+        return 0
+
+    def _save_high_score(self):
+        with open(self.high_score_file, "w") as f:
+            json.dump({"high_score": self.stats.high_score}, f)
 
     def _update_screen(self):
         """Обновляет изображение на экране и отображает новый экран"""
