@@ -11,10 +11,10 @@ class Settings:
         self.ship_limit = 3
 
         # Параметры снаряда
-        self.bullet_width = 300
+        self.bullet_width = 5
         self.bullet_height = 15
         self.bullet_color = (127, 255, 212)
-        self.bullets_allowed = 5
+        self.bullets_allowed = 3
 
         #Настройка пришельцев
         self.fleet_drop_speed = 5
@@ -30,7 +30,7 @@ class Settings:
     def initialize_dynamic_settings(self):
         """Инициализирует настройки изменяющиеся в ходе игры."""
         self.ship_speed_factor = 1.5
-        self.bullet_speed = 3
+        self.bullet_speed = 2
         self.alien_speed = 0.5
 
         self.fleet_direction = 1
