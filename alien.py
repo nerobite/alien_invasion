@@ -28,12 +28,13 @@ class Alien:
 
         self.is_boss = info.get("boss", False)
         self.state = "boss" if self.is_boss else "formation"
-        base_coins = info["coins"] + (10 * level if self.is_boss else (level - 1) // 3)
+        base_coins = info["coins"] + (10 * level if self.is_boss else (level - 1) // 5)
         self.coins = max(1, round(base_coins * coin_mult))
         self.max_hp = self.hp = info["hp"] * hp_scale
         self.points = int(info["points"] * (1 + 0.1 * (level - 1)))
         self.shoot_chance = info["shoot"] * (1 + 0.08 * (level - 1)) * fire_mult
         self.ram_damage = info["ram"]
+        self.dives = info.get("dive", False)
 
         self.dead = False
         self.flash = 0                    # кадры белой вспышки после попадания
@@ -58,7 +59,7 @@ class Alien:
         k = self.speed_factor
 
         if self.state == "formation":
-            if self.kind == "kamikaze":
+            if self.dives:
                 self.dive_timer -= 1
                 if self.dive_timer <= 0:
                     self.state = "dive"

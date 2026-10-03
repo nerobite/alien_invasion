@@ -36,10 +36,10 @@ SLOT_W, SLOT_H = 76, 50
 FLEET_DROP = 14
 
 # ------------------------------------------------------------------ миры
-# Каждый мир — LEVELS_PER_WORLD уровней, последний из них — босс.
-# enemies — веса типов пришельцев; на первых уровнях мира доступны
-# только первые типы из списка. meteors — метеоритов примерно за 10 секунд.
-LEVELS_PER_WORLD = 5
+# Каждый мир — LEVELS_PER_WORLD уровней, последний из них — босс мира.
+# enemies — веса типов пришельцев; на первых уровнях мира доступны только
+# первые типы из списка. meteors — метеоритов примерно за 10 секунд.
+LEVELS_PER_WORLD = 10
 WORLDS = [
     dict(name="Орбита Земли", bg=(2, 4, 16), nebula=[(40, 70, 170), (20, 50, 110)],
          enemies={"scout": 10, "soldier": 5, "kamikaze": 3, "tank": 2},
@@ -50,8 +50,27 @@ WORLDS = [
     dict(name="Туманность Ориона", bg=(12, 2, 18), nebula=[(160, 40, 180), (70, 30, 150)],
          enemies={"soldier": 4, "splitter": 4, "sniper": 4, "kamikaze": 4},
          boss="guardian", meteors=0.8),
+    dict(name="Имперский рубеж", bg=(4, 4, 8), nebula=[(70, 80, 110), (110, 40, 40)],
+         enemies={"tie": 10, "dagger": 5, "twin": 4, "soldier": 3},
+         boss="dreadnought", meteors=0.6),
+    dict(name="Болота Ксеноса", bg=(4, 12, 4), nebula=[(70, 140, 40), (130, 150, 30)],
+         enemies={"scout": 6, "splitter": 5, "kamikaze": 5, "bomber": 3},
+         boss="hive", meteors=0.8),
+    dict(name="Мертвая зона", bg=(6, 6, 6), nebula=[(90, 90, 100), (60, 120, 70)],
+         enemies={"tie": 8, "dagger": 6, "twin": 5, "sniper": 4},
+         boss="battle_station", meteors=1.0),
+    dict(name="Ледяные кольца", bg=(2, 8, 16), nebula=[(120, 190, 240), (60, 110, 180)],
+         enemies={"sniper": 5, "soldier": 5, "tank": 4, "splitter": 3},
+         boss="frost", meteors=2.0),
+    dict(name="Флот вторжения", bg=(8, 4, 4), nebula=[(150, 50, 40), (80, 80, 120)],
+         enemies={"tie": 6, "dagger": 6, "twin": 6, "bomber": 4, "tank": 3},
+         boss="flagship", meteors=1.0),
+    dict(name="Горизонт событий", bg=(6, 0, 10), nebula=[(110, 30, 140), (200, 90, 40)],
+         enemies={"kamikaze": 5, "sniper": 5, "splitter": 5, "dagger": 4, "tank": 4},
+         boss="overlord", meteors=1.5),
     dict(name="Родина пришельцев", bg=(2, 12, 6), nebula=[(30, 150, 70), (120, 140, 30)],
-         enemies={"soldier": 3, "sniper": 3, "bomber": 3, "splitter": 3, "tank": 3, "kamikaze": 3},
+         enemies={"soldier": 3, "sniper": 3, "bomber": 3, "splitter": 3, "tank": 3,
+                  "kamikaze": 3, "tie": 3, "dagger": 3, "twin": 3},
          boss="emperor", meteors=1.2),
 ]
 
@@ -72,34 +91,92 @@ DIFFICULTY_ORDER = ["easy", "normal", "hard", "nightmare"]
 # ------------------------------------------------------------------ пришельцы
 #   hp      — базовое здоровье (растет с уровнем)
 #   points  — очки, coins — монеты за уничтожение
-#   shoot   — вероятность выстрела за кадр (боссы стреляют по своему расписанию)
+#   shoot   — вероятность выстрела за кадр
+#   gun     — (прицел: "down" прямо вниз / "aim" в игрока, вид снаряда, скорость, урон)
+#   dive    — время от времени срывается из строя и пикирует на игрока
 #   ram     — урон кораблю игрока при таране
 ALIEN_TYPES = {
     "scout": dict(name="Разведчик", image="alien_scout.png", size=(40, 30),
                   hp=1, points=10, coins=1, shoot=0.0, ram=30),
     "soldier": dict(name="Солдат", image="alien_soldier.png", size=(44, 34),
-                    hp=3, points=25, coins=2, shoot=0.0022, ram=30),
+                    hp=3, points=25, coins=2, shoot=0.0022, gun=("down", "o", 4.5, 10), ram=30),
     "kamikaze": dict(name="Камикадзе", image="alien_kamikaze.png", size=(36, 34),
-                     hp=2, points=30, coins=3, shoot=0.0, ram=40),
+                     hp=2, points=30, coins=3, shoot=0.0, dive=True, ram=40),
     "tank": dict(name="Танк", image="alien_tank.png", size=(60, 40),
-                 hp=8, points=60, coins=5, shoot=0.0012, ram=45),
+                 hp=8, points=60, coins=5, shoot=0.0012, gun=("aim", "b", 3.5, 18), ram=45),
     "bomber": dict(name="Бомбардировщик", image="alien_bomber.png", size=(64, 34),
-                   hp=5, points=45, coins=4, shoot=0.0018, ram=40),
+                   hp=5, points=45, coins=4, shoot=0.0018, gun=("down", "k", 2.6, 24), ram=40),
     "sniper": dict(name="Снайпер", image="alien_sniper.png", size=(34, 44),
-                   hp=3, points=40, coins=4, shoot=0.0014, ram=30),
+                   hp=3, points=40, coins=4, shoot=0.0014, gun=("aim", "s", 8.0, 14), ram=30),
     "splitter": dict(name="Делитель", image="alien_splitter.png", size=(46, 32),
                      hp=4, points=35, coins=3, shoot=0.0, ram=35),
     "mini": dict(name="Осколок", image="alien_mini.png", size=(24, 20),
                  hp=1, points=5, coins=1, shoot=0.0, ram=20),
-    # Боссы: hp умножается на номер уровня
+    # Корабли в духе «Звездных войн»
+    "tie": dict(name="Шестигранник", image="alien_tie.png", size=(46, 40),
+                hp=2, points=20, coins=2, shoot=0.0028, gun=("down", "g", 6.5, 9), ram=30),
+    "dagger": dict(name="Кинжал", image="alien_dagger.png", size=(50, 42),
+                   hp=3, points=35, coins=3, shoot=0.0022, gun=("aim", "g", 6.5, 10),
+                   dive=True, ram=35),
+    "twin": dict(name="Близнец", image="alien_twin.png", size=(58, 42),
+                 hp=6, points=50, coins=4, shoot=0.0018, gun=("down", "k", 2.8, 22), ram=40),
+    # Боссы (по одному на мир)
     "mothership": dict(name="МАТКА", image="boss_mothership.png", size=(200, 110),
                        hp=40, points=1000, coins=60, shoot=0.0, ram=35, boss=True),
     "cruiser": dict(name="КРЕЙСЕР", image="boss_cruiser.png", size=(240, 90),
                     hp=42, points=1500, coins=80, shoot=0.0, ram=35, boss=True),
     "guardian": dict(name="СТРАЖ", image="boss_guardian.png", size=(160, 160),
                      hp=45, points=2000, coins=100, shoot=0.0, ram=35, boss=True),
+    "dreadnought": dict(name="ДРЕДНОУТ", image="boss_dreadnought.png", size=(260, 130),
+                        hp=48, points=2500, coins=120, shoot=0.0, ram=40, boss=True),
+    "hive": dict(name="УЛЕЙ", image="boss_hive.png", size=(190, 140),
+                 hp=50, points=3000, coins=140, shoot=0.0, ram=35, boss=True),
+    "battle_station": dict(name="БОЕВАЯ СТАНЦИЯ", image="boss_battle_station.png", size=(170, 170),
+                           hp=55, points=3500, coins=160, shoot=0.0, ram=45, boss=True),
+    "frost": dict(name="ЛЕДЯНОЙ ТИТАН", image="boss_frost.png", size=(180, 150),
+                  hp=55, points=4000, coins=180, shoot=0.0, ram=40, boss=True),
+    "flagship": dict(name="ФЛАГМАН", image="boss_flagship.png", size=(280, 120),
+                     hp=58, points=4500, coins=200, shoot=0.0, ram=45, boss=True),
+    "overlord": dict(name="ПОВЕЛИТЕЛЬ", image="boss_overlord.png", size=(200, 160),
+                     hp=60, points=5000, coins=230, shoot=0.0, ram=45, boss=True),
     "emperor": dict(name="ИМПЕРАТОР", image="boss_emperor.png", size=(230, 140),
-                    hp=50, points=3000, coins=150, shoot=0.0, ram=40, boss=True),
+                    hp=65, points=6000, coins=260, shoot=0.0, ram=45, boss=True),
+}
+
+# Атаки боссов: (вид, период в кадрах, сдвиг, параметры). Виды:
+#   spread — веер в игрока (n снарядов, step — радиан между ними)
+#   ring   — кольцо во все стороны, поворачивается со временем (n, spin)
+#   burst  — очередь прицельных выстрелов (n, gap — кадров между ними)
+#   bombs  — бомбы прямо вниз из точек корпуса (points — доли ширины)
+#   spawn  — выпускает пикирующих пришельцев (kind, n)
+BOSS_ATTACKS = {
+    "mothership": [("spread", 90, 0, dict(n=5, step=0.25, kind="b", speed=4, dmg=14)),
+                   ("spawn", 300, 0, dict(kind="kamikaze", n=2))],
+    "cruiser": [("burst", 80, 0, dict(n=3, gap=8, kind="s", speed=7.5, dmg=12)),
+                ("bombs", 150, 75, dict(points=(0.18, 0.32, 0.68, 0.82), dmg=22))],
+    "guardian": [("ring", 40, 0, dict(n=10, spin=0.07, kind="o", speed=3, dmg=12)),
+                 ("spawn", 360, 180, dict(kind="mini", n=3))],
+    "dreadnought": [("burst", 60, 0, dict(n=4, gap=6, kind="g", speed=8, dmg=12)),
+                    ("bombs", 120, 60, dict(points=(0.3, 0.5, 0.7), dmg=22)),
+                    ("spawn", 280, 140, dict(kind="tie", n=3))],
+    "hive": [("spawn", 150, 0, dict(kind="mini", n=4)),
+             ("spread", 70, 35, dict(n=3, step=0.3, kind="o", speed=3.5, dmg=12)),
+             ("spawn", 400, 200, dict(kind="splitter", n=2))],
+    "battle_station": [("ring", 55, 0, dict(n=14, spin=0.05, kind="g", speed=3.2, dmg=12)),
+                       ("burst", 200, 100, dict(n=10, gap=3, kind="s", speed=10, dmg=10)),
+                       ("spawn", 300, 150, dict(kind="dagger", n=2))],
+    "frost": [("spread", 75, 0, dict(n=7, step=0.16, kind="s", speed=5, dmg=12)),
+              ("ring", 120, 60, dict(n=12, spin=0.1, kind="o", speed=2.6, dmg=12))],
+    "flagship": [("burst", 70, 0, dict(n=5, gap=5, kind="g", speed=8, dmg=12)),
+                 ("spread", 110, 55, dict(n=5, step=0.22, kind="b", speed=4.2, dmg=15)),
+                 ("spawn", 300, 150, dict(kind="twin", n=2))],
+    "overlord": [("ring", 45, 0, dict(n=12, spin=0.13, kind="b", speed=3, dmg=14)),
+                 ("spread", 90, 45, dict(n=9, step=0.12, kind="o", speed=4.5, dmg=12)),
+                 ("spawn", 330, 165, dict(kind="splitter", n=2))],
+    "emperor": [("spread", 70, 0, dict(n=7, step=0.18, kind="b", speed=4.5, dmg=15)),
+                ("ring", 110, 55, dict(n=12, spin=0.05, kind="o", speed=3.2, dmg=12)),
+                ("spawn", 320, 160, dict(kind="splitter", n=1)),
+                ("spawn", 320, 160, dict(kind="kamikaze", n=2))],
 }
 
 # Метеориты: (радиус, базовое здоровье, урон кораблю, очки, монеты)
@@ -136,7 +213,7 @@ PICKUPS = {
 # Базовые характеристики корпуса; улучшения из магазина добавляются сверху.
 SHIPS = {
     "wanderer": dict(name="Странник", desc="Надежный корабль без слабых мест",
-                     price=0, image="ship_2.bmp", size=(46, 59),
+                     price=0, image="ship_wanderer.png", size=(48, 60),
                      hp=100, speed=5.0, armor=0.0, guns=0, damage=1.0, firerate=1.0, lives=0),
     "interceptor": dict(name="Перехватчик", desc="Быстрый и скорострельный, но хрупкий",
                         price=600, image="ship_interceptor.png", size=(42, 58),

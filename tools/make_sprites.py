@@ -365,11 +365,241 @@ def crate():
     return image
 
 
-SPRITES = [interceptor, assault, fortress, phantom,
-           scout, soldier, kamikaze, tank, bomber, sniper, splitter, mini,
-           mothership, cruiser, guardian, emperor,
+# ---------------------------------------------------------------- стартовый корабль
+
+def wanderer():
+    s = Sprite(48, 60)
+    teal, silver = (40, 170, 170), (200, 205, 215)
+    s.poly(dark(teal, 0.1), [(0.42, 0.40), (0.02, 0.74), (0.04, 0.86), (0.42, 0.80)], mirror=True)
+    s.poly(light(teal, 0.3), [(0.10, 0.74), (0.30, 0.60), (0.30, 0.66), (0.12, 0.79)], mirror=True,
+           outline=False)
+    s.poly(dark(silver, 0.25), [(0.40, 0.72), (0.30, 0.98), (0.44, 0.94)], mirror=True)
+    s.poly(silver, [(0.5, 0.0), (0.62, 0.22), (0.63, 0.86), (0.5, 0.96), (0.37, 0.86), (0.38, 0.22)])
+    s.poly(teal, [(0.5, 0.12), (0.55, 0.30), (0.55, 0.78), (0.45, 0.78), (0.45, 0.30)], outline=False)
+    s.ellipse((90, 230, 255), 0.5, 0.33, 0.07, 0.10)
+    s.ellipse((230, 250, 255), 0.48, 0.30, 0.025, 0.035, outline=False)
+    s.glow((120, 230, 230), 0.43, 0.96, 4, mirror=True)
+    return s.save("ship_wanderer.png")
+
+
+# ---------------------------------------------------------------- враги в духе «Звездных войн»
+
+def hex_points(cx, cy, rx, ry):
+    return [(cx + rx * math.cos(math.pi / 3 * i + math.pi / 6),
+             cy + ry * math.sin(math.pi / 3 * i + math.pi / 6)) for i in range(6)]
+
+
+def tie():
+    """Шестигранник: шар кабины между двумя шестиугольными панелями."""
+    s = Sprite(46, 40)
+    panel = (70, 75, 90)
+    s.line((120, 125, 135), (0.12, 0.5), (0.88, 0.5), 3)
+    for cx in (0.12, 0.88):
+        pts = hex_points(cx, 0.5, 0.11, 0.48)
+        s.poly(panel, pts)
+        for x, y in pts:
+            s.line((110, 115, 130), (cx, 0.5), (x, y), 0.8)
+    s.ellipse((160, 165, 175), 0.5, 0.5, 0.20, 0.23)
+    s.ellipse((30, 35, 45), 0.5, 0.52, 0.11, 0.13)
+    for k in range(8):
+        a = k * math.pi / 4
+        s.line((90, 160, 120), (0.5, 0.52), (0.5 + 0.1 * math.cos(a), 0.52 + 0.115 * math.sin(a)), 0.5)
+    return s.save("alien_tie.png")
+
+
+def dagger():
+    """Кинжал: шар кабины и острые изломанные крылья."""
+    s = Sprite(50, 42)
+    panel = (75, 80, 95)
+    wing = [(0.30, 0.50), (0.06, 0.0), (0.0, 0.12), (0.12, 0.50), (0.0, 0.88), (0.06, 1.0)]
+    s.poly(panel, wing, mirror=True)
+    s.line((140, 140, 155), (0.18, 0.5), (0.06, 0.04), 0.8, mirror=True)
+    s.line((140, 140, 155), (0.18, 0.5), (0.06, 0.96), 0.8, mirror=True)
+    s.line((120, 125, 135), (0.2, 0.5), (0.8, 0.5), 2.5)
+    s.ellipse((165, 170, 180), 0.5, 0.5, 0.17, 0.22)
+    s.ellipse((30, 35, 45), 0.5, 0.53, 0.09, 0.12)
+    s.glow((255, 80, 60), 0.5, 0.53, 3)
+    return s.save("alien_dagger.png")
+
+
+def twin():
+    """Близнец: две гондолы (кабина и бомбовый отсек) между изогнутыми панелями."""
+    s = Sprite(58, 42)
+    panel = (75, 80, 95)
+    s.poly(panel, [(0.08, 0.0), (0.16, 0.10), (0.16, 0.90), (0.08, 1.0), (0.0, 0.85), (0.0, 0.15)], mirror=True)
+    s.line((120, 125, 135), (0.14, 0.5), (0.86, 0.5), 2.5)
+    s.ellipse((160, 165, 175), 0.37, 0.5, 0.12, 0.30)
+    s.ellipse((30, 35, 45), 0.37, 0.56, 0.06, 0.12)
+    s.ellipse((140, 145, 155), 0.63, 0.5, 0.11, 0.42)
+    s.ellipse((60, 60, 70), 0.63, 0.82, 0.05, 0.08)
+    return s.save("alien_twin.png")
+
+
+# ---------------------------------------------------------------- новые боссы
+
+def dreadnought():
+    """Дредноут: огромный клиновидный корабль острием вниз."""
+    s = Sprite(260, 130)
+    gray = (150, 155, 165)
+    s.poly(gray, [(0.0, 0.0), (1.0, 0.0), (0.5, 1.0)])
+    s.poly(light(gray, 0.15), [(0.08, 0.04), (0.5, 0.04), (0.5, 0.88)], outline=False)
+    s.poly(dark(gray, 0.15), [(0.5, 0.04), (0.92, 0.04), (0.5, 0.88)], outline=False)
+    s.line(dark(gray, 0.4), (0.5, 0.04), (0.5, 0.9), 1.5)
+    for i in range(6):
+        y = 0.12 + i * 0.12
+        half = 0.5 * (1 - y) - 0.06
+        s.line(dark(gray, 0.3), (0.5 - half, y), (0.5 + half, y), 0.8)
+    s.poly((110, 115, 125), [(0.40, 0.0), (0.60, 0.0), (0.57, 0.22), (0.43, 0.22)])
+    s.poly((90, 95, 105), [(0.44, 0.04), (0.56, 0.04), (0.55, 0.12), (0.45, 0.12)])
+    s.ellipse((150, 155, 165), 0.43, 0.06, 0.02, 0.05, mirror=True)
+    for x in (0.15, 0.3, 0.7, 0.85):
+        s.glow((120, 180, 255), x, 0.02, 5)
+    for i in range(8):
+        s.glow((255, 230, 150), 0.3 + i * 0.055, 0.30 + (i % 2) * 0.05, 1.5)
+    return s.save("boss_dreadnought.png")
+
+
+def battle_station():
+    """Боевая станция: серая сфера с экваториальной траншеей и тарелкой суперлазера."""
+    s = Sprite(170, 170)
+    gray = (140, 145, 150)
+    s.ellipse(gray, 0.5, 0.5, 0.49, 0.49)
+    s.ellipse(light(gray, 0.12), 0.43, 0.42, 0.36, 0.36, outline=False)
+    s.ellipse(gray, 0.5, 0.5, 0.40, 0.40, outline=False)
+    s.poly(dark(gray, 0.35), [(0.02, 0.48), (0.98, 0.48), (0.98, 0.53), (0.02, 0.53)], outline=False)
+    rng = random.Random(5)
+    for _ in range(40):
+        x, y = rng.uniform(0.15, 0.80), rng.uniform(0.15, 0.80)
+        if (x - 0.5) ** 2 + (y - 0.5) ** 2 < 0.12:
+            s.poly(dark(gray, rng.uniform(0.1, 0.3)),
+                   [(x, y), (x + 0.04, y), (x + 0.04, y + 0.02), (x, y + 0.02)], outline=False)
+    s.ellipse(dark(gray, 0.25), 0.36, 0.30, 0.10, 0.10)
+    s.ellipse(dark(gray, 0.45), 0.36, 0.30, 0.05, 0.05, outline=False)
+    s.glow((100, 255, 120), 0.36, 0.30, 7)
+    return s.save("boss_battle_station.png")
+
+
+def flagship():
+    """Флагман: вытянутый темный линкор с рядами огней."""
+    s = Sprite(280, 120)
+    hull = (70, 75, 90)
+    s.poly(hull, [(0.0, 0.10), (0.25, 0.0), (0.75, 0.0), (1.0, 0.10), (0.62, 0.70), (0.5, 1.0), (0.38, 0.70)])
+    s.poly(light(hull, 0.12), [(0.12, 0.12), (0.5, 0.06), (0.5, 0.80), (0.40, 0.62)], outline=False)
+    s.poly((50, 55, 65), [(0.44, 0.0), (0.56, 0.0), (0.55, 0.25), (0.45, 0.25)])
+    for i in range(14):
+        s.glow((150, 200, 255), 0.18 + i * 0.047, 0.13, 1.5)
+    for i in range(6):
+        s.glow((255, 210, 120), 0.42 + i * 0.03, 0.45 + (i % 2) * 0.06, 1.5)
+    for x in (0.3, 0.42, 0.58, 0.7):
+        s.glow((120, 170, 255), x, 0.02, 5)
+    return s.save("boss_flagship.png")
+
+
+def hive():
+    """Улей: живое гнездо с пульсирующими мешками и глазами."""
+    s = Sprite(190, 140)
+    flesh = (110, 150, 70)
+    s.ellipse(dark(flesh, 0.2), 0.5, 0.5, 0.48, 0.45)
+    rng = random.Random(9)
+    for _ in range(9):
+        x, y, r = rng.uniform(0.2, 0.8), rng.uniform(0.25, 0.75), rng.uniform(0.08, 0.14)
+        s.ellipse(light(flesh, rng.uniform(0.0, 0.25)), x, y, r, r * 1.3)
+    for x, y in ((0.35, 0.45), (0.62, 0.40), (0.5, 0.68)):
+        s.ellipse((255, 230, 80), x, y, 0.06, 0.08)
+        s.ellipse((60, 0, 0), x, y + 0.01, 0.025, 0.05, outline=False)
+    s.glow((200, 255, 120), 0.5, 0.92, 8)
+    return s.save("boss_hive.png")
+
+
+def frost():
+    """Ледяной титан: скопление ледяных кристаллов."""
+    s = Sprite(180, 150)
+    ice = (150, 210, 255)
+    for cx, h, w in ((0.14, 0.5, 0.09), (0.86, 0.5, 0.09), (0.3, 0.75, 0.12), (0.7, 0.75, 0.12), (0.5, 1.0, 0.16)):
+        s.poly(ice, [(cx, h), (cx - w, h * 0.45), (cx, 0.0), (cx + w, h * 0.45)])
+        s.poly(light(ice, 0.5), [(cx, h * 0.9), (cx - w * 0.4, h * 0.45), (cx, 0.08)], outline=False)
+    s.glow((220, 245, 255), 0.5, 0.45, 14)
+    return s.save("boss_frost.png")
+
+
+def overlord():
+    """Повелитель: темный кристалл с шипами и красным глазом."""
+    s = Sprite(200, 160)
+    purple = (70, 30, 100)
+    for k in range(7):
+        a = math.pi * (0.1 + 0.8 * k / 6)
+        tip = (0.5 + 0.5 * math.cos(a), 0.85 - 0.8 * math.sin(a))
+        s.poly(light(purple, 0.15), [(0.5 + 0.12 * math.cos(a - 0.3), 0.55 - 0.15 * math.sin(a - 0.3)),
+                                      tip, (0.5 + 0.12 * math.cos(a + 0.3), 0.55 - 0.15 * math.sin(a + 0.3))])
+    s.poly(purple, [(0.5, 0.05), (0.75, 0.45), (0.5, 1.0), (0.25, 0.45)])
+    s.line((255, 60, 220), (0.5, 0.05), (0.25, 0.45), 1, mirror=True)
+    s.ellipse((230, 30, 40), 0.5, 0.5, 0.08, 0.09)
+    s.glow((255, 80, 60), 0.5, 0.5, 12)
+    return s.save("boss_overlord.png")
+
+
+# ---------------------------------------------------------------- оружие и снаряды
+# mount_* — ствол, который ставится на корабль; weapon_* — картинка для магазина.
+
+def weapon_art(kind, s, glow=1.0):
+    """Рисует оружие стволом вверх."""
+    if kind == "blaster":
+        s.poly((120, 125, 135), [(0.30, 0.25), (0.70, 0.25), (0.72, 1.0), (0.28, 1.0)])
+        s.poly((90, 95, 105), [(0.38, 0.0), (0.62, 0.0), (0.62, 0.30), (0.38, 0.30)])
+        s.glow((127, 255, 212), 0.5, 0.04, 3 * glow)
+    elif kind == "laser":
+        s.poly((200, 205, 215), [(0.40, 0.0), (0.60, 0.0), (0.64, 1.0), (0.36, 1.0)])
+        s.poly((160, 30, 30), [(0.36, 0.55), (0.64, 0.55), (0.64, 0.70), (0.36, 0.70)], outline=False)
+        s.glow((255, 70, 70), 0.5, 0.03, 3 * glow)
+    elif kind == "plasma":
+        s.poly((90, 80, 110), [(0.30, 0.45), (0.70, 0.45), (0.74, 1.0), (0.26, 1.0)])
+        s.ellipse((190, 110, 255), 0.5, 0.30, 0.30, 0.26)
+        s.glow((240, 200, 255), 0.5, 0.30, 4 * glow)
+    elif kind == "rockets":
+        s.poly((110, 120, 90), [(0.10, 0.30), (0.90, 0.30), (0.90, 1.0), (0.10, 1.0)])
+        for x in (0.30, 0.70):
+            s.poly((230, 230, 235), [(x - 0.12, 0.40), (x, 0.0), (x + 0.12, 0.40)])
+            s.poly((255, 200, 80), [(x - 0.06, 0.2), (x, 0.0), (x + 0.06, 0.2)], outline=False)
+
+
+def weapons():
+    for kind in ("blaster", "laser", "plasma", "rockets"):
+        mount = Sprite(10, 20)
+        weapon_art(kind, mount, 0.6)
+        mount.save(f"mount_{kind}.png")
+        icon = Sprite(36, 64)
+        weapon_art(kind, icon, 3)
+        image = icon.save(f"weapon_{kind}.png")
+        # В магазине оружие лежит горизонтально, стволом вправо
+        pygame.image.save(pygame.transform.rotate(image, -90), os.path.join(OUT, f"weapon_{kind}.png"))
+
+
+def ammo_icons():
+    colors = {"standard": (230, 230, 230), "piercing": (180, 190, 255),
+              "explosive": (255, 140, 40), "cryo": (140, 220, 255)}
+    for kind, color in colors.items():
+        s = Sprite(44, 44)
+        if kind == "cryo":
+            s.glow((180, 240, 255), 0.5, 0.3, 10)
+        for dx in (-0.22, 0.0, 0.22):
+            x = 0.5 + dx
+            s.poly((190, 150, 60), [(x - 0.09, 0.45), (x + 0.09, 0.45), (x + 0.09, 0.95), (x - 0.09, 0.95)])
+            if kind == "explosive":
+                tip = [(x - 0.09, 0.45), (x - 0.09, 0.22), (x, 0.12), (x + 0.09, 0.22), (x + 0.09, 0.45)]
+            else:
+                tip = [(x - 0.09, 0.45), (x, 0.08), (x + 0.09, 0.45)]
+            s.poly(color, tip)
+            if kind == "piercing":
+                s.line((90, 90, 110), (x, 0.14), (x, 0.40), 0.8)
+        s.save(f"ammo_{kind}.png")
+
+
+SPRITES = [wanderer, interceptor, assault, fortress, phantom,
+           scout, soldier, kamikaze, tank, bomber, sniper, splitter, mini, tie, dagger, twin,
+           mothership, cruiser, guardian, dreadnought, hive, battle_station, frost, flagship,
+           overlord, emperor,
            lambda: meteor(72, "meteor_big.png", 7), lambda: meteor(38, "meteor_small.png", 3),
-           wreck_hull, wreck_wing, crate]
+           wreck_hull, wreck_wing, crate, weapons, ammo_icons]
 
 
 def main():

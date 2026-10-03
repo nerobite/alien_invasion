@@ -58,8 +58,10 @@ class MissionPanel:
         self.diff_buttons = [Button((x + i * (bw + 10), y + 34, bw, 44), DIFFICULTIES[d]["name"], 20,
                                     tuple(c // 2 for c in DIFFICULTIES[d]["color"]))
                              for i, d in enumerate(DIFFICULTY_ORDER)]
-        self.world_buttons = [Button((x + i * (bw + 10), y + 176, bw, 44), f"Мир {i + 1}", 20,
-                                     (40, 70, 120))
+        # Миры — два ряда по 5 кнопок
+        ww = (width - 40) // 5
+        self.world_buttons = [Button((x + (i % 5) * (ww + 10), y + 172 + (i // 5) * 46, ww, 40),
+                                     str(i + 1), 20, (40, 70, 120))
                               for i in range(len(WORLDS))]
 
     @property
@@ -103,10 +105,11 @@ class MissionPanel:
                 pygame.draw.rect(screen, (255, 215, 60), button.rect, 3, border_radius=8)
         world = WORLDS[self.world]
         enemies = ", ".join(ALIEN_TYPES[k]["name"].lower() for k in world["enemies"])
-        draw_text(screen, world["name"], 22, (255, 255, 255), (x, y + 232), bold=True)
+        draw_text(screen, f"Мир {self.world + 1}: {world['name']}", 22, (255, 255, 255),
+                  (x, y + 270), bold=True)
         bottom = draw_wrapped(screen, f"Враги: {enemies}. Босс: {ALIEN_TYPES[world['boss']]['name'].capitalize()}"
                                       f" (уровень {LEVELS_PER_WORLD}).", 17, (200, 200, 200),
-                              (x, y + 260), self.width)
+                              (x, y + 298), self.width)
         meteors = "очень много" if world["meteors"] >= 2 else "много" if world["meteors"] >= 1 else "мало"
         draw_text(screen, f"Метеоритов: {meteors}. Следующий мир открывается после победы над боссом.",
                   17, (200, 200, 200), (x, bottom))

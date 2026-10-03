@@ -192,7 +192,7 @@ def draw_loadout(screen, app, x, y):
     """Карточка текущего корабля: картинка, оружие, снаряды и характеристики."""
     profile = app.profile
     stats = compute_stats(profile.loadout())
-    image = app.renderer.ship_images[profile.ship]
+    image = app.renderer.armed_ship(profile.ship, profile.weapon, stats["guns"])
     big = pygame.transform.smoothscale(image, (image.get_width() * 2, image.get_height() * 2))
     screen.blit(big, big.get_rect(center=(x + 80, y + 80)))
     draw_text(screen, SHIPS[profile.ship]["name"], 28, (255, 255, 255), (x + 180, y + 10), bold=True)

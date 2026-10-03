@@ -7,7 +7,7 @@ from debris import Wreck, Pickup
 from meteor import Meteor
 from settings import (SCREEN_WIDTH, SCREEN_HEIGHT, FORMATION_TOP, SLOT_W, SLOT_H,
                       FLEET_DROP, PLAYER_COLORS, WORLDS, LEVELS_PER_WORLD,
-                      DIFFICULTIES, AMMO_ORDER, WRECKS, WRECKS_PER_10S, PICKUPS,
+                      DIFFICULTIES, AMMO_ORDER, ALIEN_TYPES, BOSS_ATTACKS, WRECKS, WRECKS_PER_10S, PICKUPS,
                       WEAPON_ORDER, WEAPONS, world_of_level)
 from ship import PlayerShip
 
@@ -70,7 +70,7 @@ class GameWorld:
     # ------------------------------------------------------------ волны
     def _hp_scale(self):
         """Пришельцы крепче с каждым уровнем, в игре вдвоем и на высокой сложности."""
-        return ((1 + 0.18 * (self.level - 1)) * (1 + 0.6 * (len(self.players) - 1))
+        return ((1 + 0.1 * (self.level - 1)) * (1 + 0.6 * (len(self.players) - 1))
                 * self.diff["hp"])
 
     def _new_alien(self, kind, x, y, hp_scale=None):
@@ -87,15 +87,15 @@ class GameWorld:
         top = FORMATION_TOP
         title = f"Мир {self.world_index + 1}: {self.world['name']} — уровень {self.level_in_world}"
         if self.is_boss_level:
-            boss_scale = (self.level * (1 + 0.6 * (len(self.players) - 1))
+            boss_scale = ((3 + 0.7 * self.level) * (1 + 0.6 * (len(self.players) - 1))
                           * self.diff["hp"])
             self.aliens.append(self._new_alien(self.world["boss"], SCREEN_WIDTH / 2, -100,
                                                boss_scale))
             rows, cols, top = 2, 10, FORMATION_TOP + 200
             self._show_banner(title + ". БОСС!", 180)
         else:
-            rows = min(3 + (self.level - 1) // 4, 6)
-            cols = min(8 + (self.level - 1) // 3, 12)
+            rows = min(3 + (self.level - 1) // 6, 6)
+            cols = min(8 + (self.level - 1) // 5, 12)
             self._show_banner(title)
 
         start_x = (SCREEN_WIDTH - cols * SLOT_W) / 2 + SLOT_W / 2
@@ -108,11 +108,11 @@ class GameWorld:
         """Случайный тип пришельца из набора текущего мира.
         На первых уровнях мира доступны только первые типы из списка."""
         enemies = list(self.world["enemies"].items())
-        allowed = enemies[:min(len(enemies), 1 + self.level_in_world)]
+        allowed = enemies[:min(len(enemies), 2 + (self.level_in_world - 1) // 2)]
         if self.level > LEVELS_PER_WORLD * len(WORLDS):
             allowed = enemies   # второй круг миров — сразу все враги
         kinds = [k for k, _ in allowed]
-        weights = [w * (3 if row == 0 and k in ("tank", "bomber") else 1) for k, w in allowed]
+        weights = [w * (3 if row == 0 and k in ("tank", "bomber", "twin") else 1) for k, w in allowed]
         return random.choices(kinds, weights)[0]
 
     def spawn_divers(self, source, kind, count):
@@ -171,7 +171,7 @@ class GameWorld:
 
     def _update_aliens(self):
         formation = [a for a in self.aliens if a.state == "formation"]
-        speed = min(0.8 + 0.15 * (self.level - 1), 3.5) * self.diff["speed"]
+        speed = min(0.8 + 0.05 * (self.level - 1), 3.2) * self.diff["speed"]
         for alien in formation:
             alien.x += speed * self.fleet_direction * alien.speed_factor
         # Флот достиг края — спускается и разворачивается
@@ -472,7 +472,7 @@ class GameWorld:
 
     # ------------------------------------------------------------ огонь пришельцев
     def _power(self):
-        return (1 + 0.07 * (self.level - 1)) * self.diff["damage"]
+        return (1 + 0.035 * (self.level - 1)) * self.diff["damage"]
 
     def _shoot(self, x, y, angle, speed, damage, kind):
         self.enemy_bullets.append(EnemyBullet(x, y, speed * math.cos(angle),
@@ -485,69 +485,50 @@ class GameWorld:
         return math.atan2(target.y - y, target.x - x)
 
     def alien_fire(self, alien):
-        if len(self.enemy_bullets) >= 25 + 2 * self.level:
+        """Выстрел обычного пришельца по описанию gun из ALIEN_TYPES."""
+        gun = ALIEN_TYPES[alien.kind].get("gun")
+        if gun is None or len(self.enemy_bullets) >= 25 + self.level:
             return
-        power = self._power()
+        aim, kind, speed, damage = gun
         x, y = alien.rect.centerx, alien.rect.bottom
-        down = math.pi / 2
-        if alien.kind == "soldier":
-            self._shoot(x, y, down, 4.5, 10 * power, "o")
-        elif alien.kind == "tank":
-            self._shoot(x, y, self._aim(x, y), 3.5, 18 * power, "b")
-        elif alien.kind == "sniper":
-            self._shoot(x, y, self._aim(x, y), 8.0, 14 * power, "s")
-        elif alien.kind == "bomber":
-            self._shoot(x, y, down, 2.6, 24 * power, "k")
+        angle = self._aim(x, y) if aim == "aim" else math.pi / 2
+        self._shoot(x, y, angle, speed, damage * self._power(), kind)
 
     def boss_attack(self, boss):
-        """Расписание атак боссов (у каждого мира свой босс)."""
-        t = boss.timer
-        if t < 120 or len(self.enemy_bullets) > 60:
+        """Атаки босса по расписанию из BOSS_ATTACKS. С уровнем босс атакует чаще."""
+        t = boss.timer - 120          # первые 2 секунды босс только влетает
+        if t < 0 or len(self.enemy_bullets) > 70:
             return
         if boss.slowed and t % 2:
             return   # замедленный босс атакует реже
         power = self._power()
+        speedup = max(0.6, 1 - 0.005 * (self.level - 1))
         x, y = boss.rect.centerx, boss.rect.bottom - 10
-        level_speedup = 3 * self.level_in_world
-
-        if boss.kind == "mothership":
-            if t % max(45, 100 - level_speedup) == 0:
+        for attack, period, offset, p in BOSS_ATTACKS[boss.kind]:
+            period = max(20, int(period * speedup))
+            phase = (t - offset) % period
+            if attack == "burst":
+                if phase % p["gap"] == 0 and phase // p["gap"] < p["n"]:
+                    self._shoot(x, y, self._aim(x, y), p["speed"], p["dmg"] * power, p["kind"])
+                continue
+            if phase != 0:
+                continue
+            if attack == "spread":
                 aim = self._aim(x, y)
-                for spread in (-0.5, -0.25, 0, 0.25, 0.5):
-                    self._shoot(x, y, aim + spread, 4, 14 * power, "b")
-            if t % 300 == 0:
-                self.spawn_divers(boss, "kamikaze", 2)
-
-        elif boss.kind == "cruiser":
-            # Очереди прицельных выстрелов и бомбы из турелей
-            if t % 80 in (0, 8, 16):
-                self._shoot(x, y, self._aim(x, y), 7.5, 12 * power, "s")
-            if t % 150 == 75:
-                for frac in (0.18, 0.32, 0.68, 0.82):
-                    tx = boss.rect.left + boss.rect.width * frac
-                    self._shoot(tx, boss.rect.bottom - 6, math.pi / 2, 2.8, 22 * power, "k")
-
-        elif boss.kind == "guardian":
-            # Вращающиеся кольца снарядов
-            if t % 40 == 0:
-                offset = t * 0.07
-                for i in range(10):
-                    self._shoot(boss.x, boss.y, offset + i * 2 * math.pi / 10, 3.0, 12 * power, "o")
-            if t % 360 == 180:
-                self.spawn_divers(boss, "mini", 3)
-
-        elif boss.kind == "emperor":
-            if t % 70 == 0:
-                aim = self._aim(x, y)
-                for i in range(7):
-                    self._shoot(x, y, aim + (i - 3) * 0.18, 4.5, 15 * power, "b")
-            if t % 110 == 55:
-                offset = t * 0.05
-                for i in range(12):
-                    self._shoot(boss.x, boss.y, offset + i * 2 * math.pi / 12, 3.2, 12 * power, "o")
-            if t % 320 == 160:
-                self.spawn_divers(boss, "splitter", 1)
-                self.spawn_divers(boss, "kamikaze", 2)
+                for i in range(p["n"]):
+                    self._shoot(x, y, aim + (i - (p["n"] - 1) / 2) * p["step"], p["speed"],
+                                p["dmg"] * power, p["kind"])
+            elif attack == "ring":
+                turn = t * p["spin"]
+                for i in range(p["n"]):
+                    self._shoot(boss.x, boss.y, turn + i * 2 * math.pi / p["n"], p["speed"],
+                                p["dmg"] * power, p["kind"])
+            elif attack == "bombs":
+                for frac in p["points"]:
+                    bx = boss.rect.left + boss.rect.width * frac
+                    self._shoot(bx, boss.rect.bottom - 6, math.pi / 2, 2.8, p["dmg"] * power, "k")
+            elif attack == "spawn":
+                self.spawn_divers(boss, p["kind"], p["n"])
 
     # ------------------------------------------------------------ состояние
     def snapshot(self):
@@ -563,7 +544,7 @@ class GameWorld:
             "bn": self.banner if self.banner_timer > 0 else "",
             "p": [[p.rect.centerx, p.rect.centery, round(p.hp), p.max_hp, p.lives,
                    int(p.alive), p.invuln, p.score, p.coins, p.current_weapon, p.kills,
-                   int(p.connected), p.ship, p.ammo, dict(p.effects)]
+                   int(p.connected), p.ship, p.ammo, dict(p.effects), p.guns]
                   for p in self.players],
             "a": [[a.kind, a.rect.centerx, a.rect.centery,
                    round(max(a.hp, 0) / a.max_hp, 2), int(a.flash > 0) | (2 if a.slowed else 0)]

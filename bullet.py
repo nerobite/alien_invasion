@@ -62,9 +62,9 @@ class Bullet:
 
 class EnemyBullet:
     """Снаряд пришельцев. kind: 'o' — обычный, 'b' — крупный,
-    's' — быстрая пуля снайпера, 'k' — бомба."""
+    's' — быстрая пуля снайпера, 'k' — бомба, 'g' — зеленый лазерный заряд."""
 
-    SIZES = {"o": 9, "b": 14, "s": 8, "k": 16}
+    SIZES = {"o": 9, "b": 14, "s": 8, "k": 16, "g": 7}
 
     def __init__(self, x, y, vx, vy, damage, kind="o"):
         self.x, self.y = float(x), float(y)

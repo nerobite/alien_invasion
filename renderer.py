@@ -5,7 +5,7 @@ import pygame
 
 from settings import (SCREEN_WIDTH, SCREEN_HEIGHT, ALIEN_TYPES, SHIPS, WEAPONS, AMMO,
                       AMMO_ORDER, METEORS, WRECKS, PICKUPS, WORLDS, DIFFICULTIES,
-                      LEVELS_PER_WORLD, FPS, PLAYER_COLORS, PLAYER_NAMES)
+                      LEVELS_PER_WORLD, FPS, GUN_LAYOUTS, PLAYER_COLORS, PLAYER_NAMES)
 from utils import resource_path, draw_text, draw_coin, silhouette, get_font
 
 HUD_HEIGHT = 52
@@ -51,6 +51,11 @@ class Renderer:
         self.life_icons = {sid: pygame.transform.smoothscale(img, (14, 18))
                            for sid, img in self.ship_images.items()}
         self._outlines = {}
+        self._armed_ships = {}
+        # Стволы на корабле, картинки оружия и снарядов для магазина
+        self.mounts = {w: load_image(f"mount_{w}.png", (10, 20)) for w in WEAPONS}
+        self.weapon_icons = {w: load_image(f"weapon_{w}.png", (128, 72)) for w in WEAPONS}
+        self.ammo_icons = {a: load_image(f"ammo_{a}.png", (66, 66)) for a in AMMO}
 
         self.alien_images = {}
         self.alien_flash = {}
@@ -87,6 +92,22 @@ class Renderer:
 
     def draw_background(self, screen, world_index=0):
         screen.blit(self.backgrounds[world_index % len(self.backgrounds)], (0, 0))
+
+    def armed_ship(self, ship, weapon, guns):
+        """Корабль с установленным оружием: по стволу на каждую пушку."""
+        key = (ship, weapon, guns)
+        if key not in self._armed_ships:
+            base = self.ship_images[ship]
+            w, h = base.get_size()
+            pad = 8
+            surface = pygame.Surface((w + 2 * pad, h + pad), pygame.SRCALPHA)
+            surface.blit(base, (pad, pad))
+            for offset, angle in GUN_LAYOUTS[guns]:
+                x = pad + w / 2 + max(-(w / 2 - 2), min(w / 2 - 2, offset))
+                mount = pygame.transform.rotate(self.mounts[weapon], -angle)
+                surface.blit(mount, mount.get_rect(center=(x, pad + h * 0.24)))
+            self._armed_ships[key] = surface
+        return self._armed_ships[key]
 
     def ship_outline(self, ship, player_index):
         """Цветной контур корабля — чтобы в кооперативе различать игроков."""
@@ -258,6 +279,9 @@ class Renderer:
         elif kind == "s":
             pygame.draw.circle(screen, (0, 90, 120), (x, y), 6)
             pygame.draw.circle(screen, (150, 255, 255), (x, y), 3)
+        elif kind == "g":
+            pygame.draw.line(screen, (40, 160, 40), (x, y - 7), (x, y + 7), 5)
+            pygame.draw.line(screen, (180, 255, 170), (x, y - 6), (x, y + 6), 2)
         elif kind == "k":
             pygame.draw.circle(screen, (120, 50, 0), (x, y), 10)
             pygame.draw.circle(screen, (255, 140, 30), (x, y), 7)
@@ -293,14 +317,14 @@ class Renderer:
 
     def _draw_ship(self, screen, index, player, coop):
         x, y, hp, max_hp, lives, alive, invuln = player[:7]
-        ship = player[12]
+        ship, weapon, guns = player[12], player[9], player[15]
         if not alive:
             return
         if invuln and (self.frame // 5) % 2:
             return   # мигание во время неуязвимости
         color = PLAYER_COLORS[index]
-        image = self.ship_images[ship]
-        half_h = image.get_height() // 2
+        base = self.ship_images[ship]
+        half_h = base.get_height() // 2
         # Пламя двигателя
         flame_len = 10 + (self.frame * 7 + index * 3) % 8
         pygame.draw.polygon(screen, color, [(x - 6, y + half_h - 6), (x + 6, y + half_h - 6),
@@ -308,7 +332,9 @@ class Renderer:
         if coop:
             outline = self.ship_outline(ship, index)
             screen.blit(outline, outline.get_rect(center=(x, y)))
-        screen.blit(image, image.get_rect(center=(x, y)))
+        armed = self.armed_ship(ship, weapon, guns)
+        screen.blit(armed, armed.get_rect(center=(x, y - 4)))
+        image = base
         effects = player[14]
         if "shield" in effects:
             radius = max(image.get_width(), image.get_height()) // 2 + 8
@@ -329,7 +355,7 @@ class Renderer:
 
         for index, player in enumerate(snap["p"]):
             (x, y, hp, max_hp, lives, alive, invuln, score, coins, weapon,
-             kills, connected, ship, ammo, effects) = player
+             kills, connected, ship, ammo, effects, guns) = player
             left = 12 + index * 330
             color = PLAYER_COLORS[index]
             name = PLAYER_NAMES[index]

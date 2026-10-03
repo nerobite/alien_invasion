@@ -189,7 +189,8 @@ class ShopScene:
             pygame.draw.rect(screen, (255, 215, 60), rect, 3, border_radius=12)
 
         if kind == "ship":
-            image = self.app.renderer.ship_images[item_id]
+            guns = compute_stats(dict(profile.loadout(), ship=item_id))["guns"]
+            image = self.app.renderer.armed_ship(item_id, profile.weapon, guns)
             big = pygame.transform.smoothscale(image, (image.get_width() * 2, image.get_height() * 2))
             screen.blit(big, big.get_rect(center=(rect.centerx, rect.y + 85)))
             draw_text(screen, info["name"], 24, (255, 255, 255), (rect.centerx, rect.y + 160), "midtop", True)
@@ -212,13 +213,19 @@ class ShopScene:
             else:
                 title = info["name"]
                 details = "Переключение — клавиша Q"
-            pygame.draw.circle(screen, info["color"], (rect.x + 26, rect.y + 28), 10)
-            draw_text(screen, title, 26, (255, 255, 255), (rect.x + 46, rect.y + 12), bold=True)
-            draw_text(screen, info["desc"], 19, (170, 220, 255), (rect.x + 16, rect.y + 56))
-            draw_text(screen, details, 17, (200, 200, 200), (rect.x + 16, rect.y + 86))
+            # Картинка оружия или снарядов слева
+            icons = self.app.renderer.weapon_icons if kind == "weapon" else self.app.renderer.ammo_icons
+            icon = icons[item_id]
+            frame = pygame.Rect(rect.x + 12, rect.y + 12, 150, rect.height - 24)
+            pygame.draw.rect(screen, (28, 28, 58), frame, border_radius=10)
+            screen.blit(icon, icon.get_rect(center=frame.center))
+            tx = frame.right + 16
+            draw_text(screen, title, 26, (255, 255, 255), (tx, rect.y + 12), bold=True)
+            draw_text(screen, info["desc"], 18, (170, 220, 255), (tx, rect.y + 52))
+            draw_text(screen, details, 16, (200, 200, 200), (tx, rect.y + 80))
             if kind == "weapon":
-                draw_text(screen, "Переключение — клавиша E или цифра", 15, (150, 150, 170),
-                          (rect.x + 16, rect.y + 112))
+                draw_text(screen, "Смена в бою: E или 1–4",
+                          14, (150, 150, 170), (tx, rect.y + 104))
 
         if selected:
             button.text, button.enabled, button.color = "Выбрано", False, (60, 60, 70)
